@@ -88,10 +88,47 @@
         </div>
     </div>
     <div class='map-overlay' id='legend'>
-        <!-- add stuff here -->
+        <!-- INSERT HERE -->
     </div>
     <script>
-        // add stuff here
+        // creating a map instance
+        mapboxgl.accessToken = 'INSERT HERE';
+
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            style: 'mapbox://styles/mapbox/light-v10', // style URL
+            zoom: 3, // starting zoom
+            center: [-100, 40] // starting position [lng, lat]
+        });
+
+        // loading GeoJSON, adding GeoJSON data as map layer, adding content to legend, implementing hovering effect
+        async function geojsonFetch() {
+            let response = await fetch('assets/wa-covid-data-102521.geojson');
+            let covidData = await response.json();
+
+            map.on('load', function loadingData() {
+                // add layer
+                map.addSource('covidData', {
+                    'type': 'geojson',
+                    'data': covidData
+                });
+
+                map.addLayer({
+                    'id': 'covidData-layer',
+                    'type': 'fill',
+                    'source': 'covidData',
+                    'paint': {
+                        // 'fill-color': [],
+                        'fill-outline-color': 'BBBBBB',
+                        'fill-opacity': 0.7
+                    }
+                })
+
+                // add legend
+            });
+        }
+
+        geojsonFetch();
     </script>
 
 </body>
