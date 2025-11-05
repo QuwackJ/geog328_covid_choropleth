@@ -3,10 +3,13 @@
 
 <head>
     <meta charset="utf-8">
-    <title>INSERT HERE</title>
+    <title>County Choropleth</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <!-- mapbox gl css and js files -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+
     <style>
         /* website text styling */
         h2, h3 {
@@ -30,6 +33,7 @@
             left: 0;
             right: 0;
             width: 100%;
+            height: 100%;
         }
 
         /* title box styling */
@@ -49,7 +53,7 @@
 
         #features {
             top: 0;
-            height: 100px;
+            height: 120px;
             margin-top: 20px;
             width: 250px;
         }
@@ -60,6 +64,7 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             line-height: 18px;
             height: 210px;
+            margin-bottom: 40px;
             width: 150px;
         }
 
@@ -82,23 +87,22 @@
 <body>
     <div id="map"></div>
     <div class='map-overlay' id='features'>
-        <h2>INSERT HERE</h2>
+        <h2>Full vaccinations per 10k people within county</h2>
         <div id='text-description'>
-            <p>INSERT HERE</p>
+            <p>Hover over a county</p>
         </div>
     </div>
-    <div class='map-overlay' id='legend'>
-        <!-- INSERT HERE -->
-    </div>
+    <div class='map-overlay' id='legend'></div>
     <script>
         // creating a map instance
-        mapboxgl.accessToken = 'INSERT HERE';
-
+        mapboxgl.accessToken = 
+            'pk.eyJ1IjoicXV3YWNrLWpvbmVzIiwiYSI6ImNtaDJkcjBzNzBiOGoyam9ib2Q4bGZkNTUifQ.tcdpJ47sN7uE8gEREB17MQ';
+        
         const map = new mapboxgl.Map({
             container: 'map', // container ID
             style: 'mapbox://styles/mapbox/light-v10', // style URL
-            zoom: 3, // starting zoom
-            center: [-100, 40] // starting position [lng, lat]
+            zoom: 6.3, // starting zoom
+            center: [-120.5, 47.3] // starting position [lng, lat]
         });
 
         // loading GeoJSON, adding GeoJSON data as map layer, adding content to legend, implementing hovering effect
@@ -109,8 +113,8 @@
             map.on('load', function loadingData() {
                 // add layer
                 map.addSource('covidData', {
-                    'type': 'geojson',
-                    'data': covidData
+                    type: 'geojson',
+                    data: covidData
                 });
 
                 map.addLayer({
@@ -118,16 +122,83 @@
                     'type': 'fill',
                     'source': 'covidData',
                     'paint': {
-                        // 'fill-color': [],
-                        'fill-outline-color': 'BBBBBB',
+                        'fill-color': [
+                            'step',
+                            ['get', 'fullyVaxPer10k'], // get fullyVaxPer10k attribute from data
+                            '#FFEDA0',   // use this color if fullyVaxPer10k < 3000
+                            3000,
+                            '#FED976',   // use this color if 3000 <= fullyVaxPer10k < 3500
+                            3500,
+                            '#FEB24C',   // use this color if 3500 <= fullyVaxPer10k < 4000
+                            4000,
+                            '#FD8D3C',   // use this color if 4000 <= fullyVaxPer10k < 4500
+                            4500,
+                            '#FC4E2A',   // use this color if 4500 <= fullyVaxPer10k < 5000
+                            5000,
+                            '#E31A1C',   // use this color if 5000 <= fullyVaxPer10k < 5500
+                            5500,
+                            '#BD0026',   // use this color if 5500 <= fullyVaxPer10k < 6000
+                            6000,
+                            "#800026"    // use this color if 6000 <= fullyVaxPer10k
+                        ],
+                        'fill-outline-color': '#BBBBBB',
                         'fill-opacity': 0.7
                     }
-                })
+                });
+
+                // creating a list of stops used in the color ramp
+                const layers = [
+                    '0-2999',
+                    '3000-3499',
+                    '3500-3999',
+                    '4000-4499',
+                    '4500-4999',
+                    '5000-5499',
+                    '5500-5999',
+                    '6000 and more'
+                ];
+                const colors = [
+                    '#FFEDA070',
+                    '#FED97670',
+                    '#FEB24C70',
+                    '#FD8D3C70',
+                    '#FC4E2A70',
+                    '#E31A1C70',
+                    '#BD002670',
+                    '#80002670'
+                ];
 
                 // add legend
+                const legend = document.getElementById('legend');
+                legend.innerHTML = "<b>Fully Vaccinated per 10k</b><br><br>";
+
+                layers.forEach((layer, i) => {
+                    const color = colors[i];
+                    const item = document.createElement('div');
+                    const key = document.createElement('span');
+                    key.className = 'legend-key';
+                    key.style.backgroundColor = color;
+
+                    const value = document.createElement('span');
+                    value.innerHTML = `${layer}`;
+                    item.appendChild(key);
+                    item.appendChild(value);
+                    legend.appendChild(item);
+                });
+            });
+
+            // adding information window
+            map.on('mousemove', ({point}) => {
+                const county = map.queryRenderedFeatures(point, {
+                    layers: ['covidData-layer']
+                });
+                document.getElementById('text-description').innerHTML = county.length ?
+                    `<h3>${county[0].properties.name}</h3><p>Fully Vaccinated per 10k: ${county[0].properties.fullyVaxPer10k}</p>` :
+                    `<p>Hover over a county</p>`;
             });
         }
 
+        // calling function to load geojson and add layer
         geojsonFetch();
     </script>
 
